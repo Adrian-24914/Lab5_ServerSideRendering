@@ -18,7 +18,8 @@ func get(conn net.Conn, db *sql.DB) {
 	requestLine, _ := reader.ReadString('\n')
 	parts := strings.Fields(requestLine)
 
-	_ = parts[1]
+	method := parts[0]
+	path := parts[1]
 
 	// descartar headers
 	for {
@@ -26,6 +27,22 @@ func get(conn net.Conn, db *sql.DB) {
 		if line == "\r\n" {
 			break
 		}
+	}
+
+	if method == "GET" && path == "/" {
+		//tabla principal
+	}
+
+	if method == "GET" && path == "/create" {
+		//formulario de creación
+	}
+
+	if method == "POST" && path == "/create" {
+		//incertar base
+	}
+
+	if method == "POST" && strings.HasPrefix(path, "/update/") {
+		//actualizar base
 	}
 
 	rows, _ := db.Query("SELECT id, name, current_episode, total_episodes FROM series")
