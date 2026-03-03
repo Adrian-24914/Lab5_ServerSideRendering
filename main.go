@@ -18,8 +18,16 @@ func get(conn net.Conn, db *sql.DB) {
 
 	reader := bufio.NewReader(conn)
 
-	requestLine, _ := reader.ReadString('\n')
+	requestLine, err := reader.ReadString('\n')
+	if err != nil {
+		fmt.Println("Read error:", err)
+		return
+	}
+
 	parts := strings.Fields(requestLine)
+	if len(parts) < 2 {
+		return
+	}
 
 	method := parts[0]
 	path := parts[1]
@@ -28,7 +36,10 @@ func get(conn net.Conn, db *sql.DB) {
 	contentLength := 0
 
 	for {
-		line, _ := reader.ReadString('\n')
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			return
+		}
 
 		if strings.HasPrefix(line, "Content-Length:") {
 			lengthStr := strings.TrimSpace(strings.TrimPrefix(line, "Content-Length:"))
@@ -40,11 +51,14 @@ func get(conn net.Conn, db *sql.DB) {
 		}
 	}
 
-
 	// GET /
 	if method == "GET" && path == "/" {
 
-		rows, _ := db.Query("SELECT id, name, current_episode, total_episodes FROM series")
+		rows, err := db.Query("SELECT id, name, current_episode, total_episodes FROM series")
+		if err != nil {
+			fmt.Println("Query error:", err)
+			return
+		}
 		defer rows.Close()
 
 		var id int
@@ -74,7 +88,11 @@ func get(conn net.Conn, db *sql.DB) {
 		`
 
 		for rows.Next() {
-			rows.Scan(&id, &name, &current, &total)
+			err = rows.Scan(&id, &name, &current, &total)
+			if err != nil {
+				fmt.Println("Scan error:", err)
+				continue
+			}
 
 			html += fmt.Sprintf(
 				"<tr><td>%d</td><td>%s</td><td>%d</td><td>%d</td><td><button onclick=\"nextEpisode(%d)\">+1</button></td></tr>",
@@ -149,18 +167,30 @@ func get(conn net.Conn, db *sql.DB) {
 	if method == "POST" && path == "/create" {
 
 		bodyBytes := make([]byte, contentLength)
-		io.ReadFull(reader, bodyBytes)
+		_, err := io.ReadFull(reader, bodyBytes)
+		if err != nil {
+			fmt.Println("Body read error:", err)
+			return
+		}
 
-		values, _ := url.ParseQuery(string(bodyBytes))
+		values, err := url.ParseQuery(string(bodyBytes))
+		if err != nil {
+			fmt.Println("Parse error:", err)
+			return
+		}
 
 		name := values.Get("series_name")
 		current := values.Get("current_episode")
 		total := values.Get("total_episodes")
 
-		db.Exec(
+		_, err = db.Exec(
 			"INSERT INTO series (name, current_episode, total_episodes) VALUES (?, ?, ?)",
 			name, current, total,
 		)
+		if err != nil {
+			fmt.Println("Insert error:", err)
+			return
+		}
 
 		response := "HTTP/1.1 303 See Other\r\n" +
 			"Location: /\r\n\r\n"
@@ -169,21 +199,31 @@ func get(conn net.Conn, db *sql.DB) {
 		return
 	}
 
-	// POST /update
+
+	// POST /update?id=X
 	if method == "POST" && strings.HasPrefix(path, "/update") {
 
 		parts := strings.SplitN(path, "?", 2)
 
 		if len(parts) > 1 {
-			params, _ := url.ParseQuery(parts[1])
+			params, err := url.ParseQuery(parts[1])
+			if err != nil {
+				fmt.Println("URL parse error:", err)
+				return
+			}
+
 			id := params.Get("id")
 
-			db.Exec(
+			_, err = db.Exec(
 				`UPDATE series
 				 SET current_episode = current_episode + 1
 				 WHERE id = ? AND current_episode < total_episodes`,
 				id,
 			)
+			if err != nil {
+				fmt.Println("Update error:", err)
+				return
+			}
 		}
 
 		response := "HTTP/1.1 200 OK\r\n" +
@@ -196,16 +236,28 @@ func get(conn net.Conn, db *sql.DB) {
 
 func main() {
 
-	db, _ := sql.Open("sqlite", "./series.db")
+	db, err := sql.Open("sqlite", "./series.db")
+	if err != nil {
+		fmt.Println("DB open error:", err)
+		return
+	}
 	defer db.Close()
 
-	listener, _ := net.Listen("tcp", ":8080")
+	listener, err := net.Listen("tcp", ":8080")
+	if err != nil {
+		fmt.Println("Listen error:", err)
+		return
+	}
 	defer listener.Close()
 
 	fmt.Println("Server running on http://localhost:8080")
 
 	for {
-		conn, _ := listener.Accept()
+		conn, err := listener.Accept()
+		if err != nil {
+			fmt.Println("Accept error:", err)
+			continue
+		}
 		go get(conn, db)
 	}
 }
