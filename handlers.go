@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"database/sql"
 	"fmt"
 	"io"
@@ -48,7 +47,9 @@ func get(conn net.Conn, db *sql.DB) {
 		}
 	}
 
+	// =========================
 	// GET /
+	// =========================
 	if method == "GET" && path == "/" {
 
 		rows, err := db.Query("SELECT id, name, current_episode, total_episodes FROM series")
@@ -100,12 +101,7 @@ func get(conn net.Conn, db *sql.DB) {
 		html += `
 		</table>
 
-		<script>
-		async function nextEpisode(id) {
-			await fetch("/update?id=" + id, { method: "POST" })
-			location.reload()
-		}
-		</script>
+		<script src="/static/app.js"></script>
 
 		</body>
 		</html>
@@ -119,11 +115,16 @@ func get(conn net.Conn, db *sql.DB) {
 		return
 	}
 
+	// =========================
 	// GET /create
+	// =========================
 	if method == "GET" && path == "/create" {
 
 		html := `
 		<html>
+		<head>
+		<title>Add Series</title>
+		</head>
 		<body>
 
 		<h1>Add New Series</h1>
@@ -158,7 +159,9 @@ func get(conn net.Conn, db *sql.DB) {
 		return
 	}
 
+	// =========================
 	// POST /create
+	// =========================
 	if method == "POST" && path == "/create" {
 
 		bodyBytes := make([]byte, contentLength)
@@ -194,8 +197,9 @@ func get(conn net.Conn, db *sql.DB) {
 		return
 	}
 
-
+	// =========================
 	// POST /update?id=X
+	// =========================
 	if method == "POST" && strings.HasPrefix(path, "/update") {
 
 		parts := strings.SplitN(path, "?", 2)
