@@ -76,6 +76,43 @@ func get(conn net.Conn, db *sql.DB) {
 
 		conn.Write([]byte(response))
 	}
+
+	if method == "GET" && path == "/create" {
+
+		html := `
+		<html>
+		<body>
+
+		<h1>Add New Series</h1>
+
+		<form method="POST" action="/create">
+
+			Name:<br>
+			<input type="text" name="series_name" required><br><br>
+
+			Current Episode:<br>
+			<input type="number" name="current_episode" min="1" value="1" required><br><br>
+
+			Total Episodes:<br>
+			<input type="number" name="total_episodes" min="1" required><br><br>
+
+			<button type="submit">Save</button>
+
+		</form>
+
+		<br>
+		<a href="/">Back</a>
+
+		</body>
+		</html>
+		`
+
+		response := "HTTP/1.1 200 OK\r\n" +
+			"Content-Type: text/html\r\n" +
+			fmt.Sprintf("Content-Length: %d\r\n\r\n%s", len(html), html)
+
+		conn.Write([]byte(response))
+	}
 }
 
 func main() {
