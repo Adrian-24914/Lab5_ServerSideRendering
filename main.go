@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"strconv"
+	"io"
+	"net/url"
 
 	_ "modernc.org/sqlite"
 )
@@ -23,10 +26,18 @@ func get(conn net.Conn, db *sql.DB) {
 	path := parts[1]
 
 	// Descartar headers
+	contentLength := 0
+
 	for {
 		line, _ := reader.ReadString('\n')
+
+		if strings.HasPrefix(line, "Content-Length:") {
+		lengthStr := strings.TrimSpace(strings.TrimPrefix(line, "Content-Length:"))
+		contentLength, _ = strconv.Atoi(lengthStr)
+		}
+
 		if line == "\r\n" {
-			break
+		break
 		}
 	}
 
@@ -110,6 +121,28 @@ func get(conn net.Conn, db *sql.DB) {
 		response := "HTTP/1.1 200 OK\r\n" +
 			"Content-Type: text/html\r\n" +
 			fmt.Sprintf("Content-Length: %d\r\n\r\n%s", len(html), html)
+
+		conn.Write([]byte(response))
+	}
+
+	if method == "POST" && path == "/create" {
+
+		bodyBytes := make([]byte, contentLength)
+		io.ReadFull(reader, bodyBytes)
+
+		values, _ := url.ParseQuery(string(bodyBytes))
+
+		name := values.Get("series_name")
+		current := values.Get("current_episode")
+		total := values.Get("total_episodes")
+
+		db.Exec(
+			"INSERT INTO series (name, current_episode, total_episodes) VALUES (?, ?, ?)",
+			name, current, total,
+		)
+
+		response := "HTTP/1.1 303 See Other\r\n" +
+			"Location: /\r\n\r\n"
 
 		conn.Write([]byte(response))
 	}
