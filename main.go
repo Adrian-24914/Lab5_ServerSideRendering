@@ -4,11 +4,11 @@ import (
 	"bufio"
 	"database/sql"
 	"fmt"
-	"net"
-	"strings"
-	"strconv"
 	"io"
+	"net"
 	"net/url"
+	"strconv"
+	"strings"
 
 	_ "modernc.org/sqlite"
 )
@@ -18,28 +18,28 @@ func get(conn net.Conn, db *sql.DB) {
 
 	reader := bufio.NewReader(conn)
 
-	// Leer primera línea del request
 	requestLine, _ := reader.ReadString('\n')
 	parts := strings.Fields(requestLine)
 
 	method := parts[0]
 	path := parts[1]
 
-	// Descartar headers
+	// Leer headers
 	contentLength := 0
 
 	for {
 		line, _ := reader.ReadString('\n')
 
 		if strings.HasPrefix(line, "Content-Length:") {
-		lengthStr := strings.TrimSpace(strings.TrimPrefix(line, "Content-Length:"))
-		contentLength, _ = strconv.Atoi(lengthStr)
+			lengthStr := strings.TrimSpace(strings.TrimPrefix(line, "Content-Length:"))
+			contentLength, _ = strconv.Atoi(lengthStr)
 		}
 
 		if line == "\r\n" {
-		break
+			break
 		}
 	}
+
 
 	// GET /
 	if method == "GET" && path == "/" {
@@ -60,6 +60,8 @@ func get(conn net.Conn, db *sql.DB) {
 		<body>
 
 		<h1>My Series Tracker</h1>
+		<a href="/create">Add New Series</a>
+		<br><br>
 
 		<table border="1" cellpadding="8" cellspacing="0">
 		<tr>
@@ -67,6 +69,7 @@ func get(conn net.Conn, db *sql.DB) {
 		<th>Name</th>
 		<th>Current</th>
 		<th>Total</th>
+		<th>+1</th>
 		</tr>
 		`
 
@@ -74,20 +77,35 @@ func get(conn net.Conn, db *sql.DB) {
 			rows.Scan(&id, &name, &current, &total)
 
 			html += fmt.Sprintf(
-				"<tr><td>%d</td><td>%s</td><td>%d</td><td>%d</td></tr>",
-				id, name, current, total,
+				"<tr><td>%d</td><td>%s</td><td>%d</td><td>%d</td><td><button onclick=\"nextEpisode(%d)\">+1</button></td></tr>",
+				id, name, current, total, id,
 			)
 		}
 
-		html += "</table></body></html>"
+		html += `
+		</table>
+
+		<script>
+		async function nextEpisode(id) {
+			await fetch("/update?id=" + id, { method: "POST" })
+			location.reload()
+		}
+		</script>
+
+		</body>
+		</html>
+		`
 
 		response := "HTTP/1.1 200 OK\r\n" +
 			"Content-Type: text/html\r\n" +
 			fmt.Sprintf("Content-Length: %d\r\n\r\n%s", len(html), html)
 
 		conn.Write([]byte(response))
+		return
 	}
 
+
+	// GET /create
 	if method == "GET" && path == "/create" {
 
 		html := `
@@ -123,8 +141,11 @@ func get(conn net.Conn, db *sql.DB) {
 			fmt.Sprintf("Content-Length: %d\r\n\r\n%s", len(html), html)
 
 		conn.Write([]byte(response))
+		return
 	}
 
+
+	// POST /create
 	if method == "POST" && path == "/create" {
 
 		bodyBytes := make([]byte, contentLength)
@@ -145,6 +166,31 @@ func get(conn net.Conn, db *sql.DB) {
 			"Location: /\r\n\r\n"
 
 		conn.Write([]byte(response))
+		return
+	}
+
+	// POST /update
+	if method == "POST" && strings.HasPrefix(path, "/update") {
+
+		parts := strings.SplitN(path, "?", 2)
+
+		if len(parts) > 1 {
+			params, _ := url.ParseQuery(parts[1])
+			id := params.Get("id")
+
+			db.Exec(
+				`UPDATE series
+				 SET current_episode = current_episode + 1
+				 WHERE id = ? AND current_episode < total_episodes`,
+				id,
+			)
+		}
+
+		response := "HTTP/1.1 200 OK\r\n" +
+			"Content-Type: text/plain\r\n\r\nok"
+
+		conn.Write([]byte(response))
+		return
 	}
 }
 
