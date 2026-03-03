@@ -105,6 +105,7 @@ func get(conn net.Conn, db *sql.DB) {
 		<html>
 		<head>
 		<title>My Series Tracker</title>
+		<link rel="stylesheet" href="/static/style.css">
 		</head>
 		<body>
 
@@ -112,7 +113,7 @@ func get(conn net.Conn, db *sql.DB) {
 		<a href="/create">Add New Series</a>
 		<br><br>
 
-		<table border="1" cellpadding="8" cellspacing="0">
+		<table>
 		<tr>
 		<th>#</th>
 		<th>Name</th>
@@ -166,6 +167,7 @@ func get(conn net.Conn, db *sql.DB) {
 		<html>
 		<head>
 		<title>Add Series</title>
+		<link rel="stylesheet" href="/static/style.css">
 		</head>
 		<body>
 
