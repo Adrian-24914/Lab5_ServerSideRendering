@@ -15,13 +15,14 @@ func get(conn net.Conn, db *sql.DB) {
 
 	reader := bufio.NewReader(conn)
 
+	// Leer primera línea del request
 	requestLine, _ := reader.ReadString('\n')
 	parts := strings.Fields(requestLine)
 
 	method := parts[0]
 	path := parts[1]
 
-	// descartar headers
+	// Descartar headers
 	for {
 		line, _ := reader.ReadString('\n')
 		if line == "\r\n" {
@@ -29,8 +30,12 @@ func get(conn net.Conn, db *sql.DB) {
 		}
 	}
 
+	// GET /
 	if method == "GET" && path == "/" {
-		
+
+		rows, _ := db.Query("SELECT id, name, current_episode, total_episodes FROM series")
+		defer rows.Close()
+
 		var id int
 		var name string
 		var current int
@@ -71,23 +76,6 @@ func get(conn net.Conn, db *sql.DB) {
 
 		conn.Write([]byte(response))
 	}
-
-	if method == "GET" && path == "/create" {
-		//formulario de creación
-	}
-
-	if method == "POST" && path == "/create" {
-		//incertar base
-	}
-
-	if method == "POST" && strings.HasPrefix(path, "/update/") {
-		//actualizar base
-	}
-
-	rows, _ := db.Query("SELECT id, name, current_episode, total_episodes FROM series")
-	defer rows.Close()
-
-
 }
 
 func main() {
