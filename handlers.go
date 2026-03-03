@@ -116,6 +116,8 @@ func get(conn net.Conn, db *sql.DB) {
 		<link rel="stylesheet" href="/static/style.css">
 		</head>
 		<body>
+		
+		<div class="container">
 
 		<h1>My Series Tracker</h1>
 		<a href="/create">Add New Series</a>
@@ -151,7 +153,7 @@ func get(conn net.Conn, db *sql.DB) {
 
 		html += `
 		</table>
-
+		</div>
 		<script src="/static/app.js"></script>
 
 		</body>
@@ -179,9 +181,11 @@ func get(conn net.Conn, db *sql.DB) {
 		</head>
 		<body>
 
+		<div class="container">
+
 		<h1>Add New Series</h1>
 
-		<img src="/static/Duck.png" width="150"><br><br>
+		<img src="/static/Duck.png" class="duck"><br><br>
 
 		<form method="POST" action="/create">
 
@@ -200,6 +204,8 @@ func get(conn net.Conn, db *sql.DB) {
 
 		<br>
 		<a href="/">Back</a>
+
+		</div>
 
 		</body>
 		</html>
