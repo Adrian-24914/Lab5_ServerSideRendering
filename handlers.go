@@ -118,7 +118,9 @@ func get(conn net.Conn, db *sql.DB) {
 		<th>Name</th>
 		<th>Current</th>
 		<th>Total</th>
+		<th>-1</th>
 		<th>+1</th>
+		<th>Delete</th>
 		</tr>
 		`
 
@@ -130,8 +132,11 @@ func get(conn net.Conn, db *sql.DB) {
 			}
 
 			html += fmt.Sprintf(
-				"<tr><td>%d</td><td>%s</td><td>%d</td><td>%d</td><td><button onclick=\"nextEpisode(%d)\">+1</button></td></tr>",
-				id, name, current, total, id,
+				"<tr><td>%d</td><td>%s</td><td>%d</td><td>%d</td>"+
+					"<td><button onclick=\"prevEpisode(%d)\">-1</button></td>"+
+					"<td><button onclick=\"nextEpisode(%d)\">+1</button></td>"+
+					"<td><button onclick=\"deleteSeries(%d)\">Delete</button></td></tr>",
+				id, name, current, total, id, id, id,
 			)
 		}
 
@@ -258,6 +263,71 @@ func get(conn net.Conn, db *sql.DB) {
 			)
 			if err != nil {
 				fmt.Println("Update error:", err)
+				return
+			}
+		}
+
+		response := "HTTP/1.1 200 OK\r\n" +
+			"Content-Type: text/plain\r\n\r\nok"
+
+		conn.Write([]byte(response))
+		return
+	}
+
+	// =========================
+	// POST /decrement?id=X
+	// =========================
+	if method == "POST" && strings.HasPrefix(path, "/decrement") {
+
+		parts := strings.SplitN(path, "?", 2)
+
+		if len(parts) > 1 {
+			params, err := url.ParseQuery(parts[1])
+			if err != nil {
+				fmt.Println("URL parse error:", err)
+				return
+			}
+
+			id := params.Get("id")
+
+			_, err = db.Exec(
+				`UPDATE series
+				 SET current_episode = current_episode - 1
+				 WHERE id = ? AND current_episode > 1`,
+				id,
+			)
+			if err != nil {
+				fmt.Println("Decrement error:", err)
+				return
+			}
+		}
+
+		response := "HTTP/1.1 200 OK\r\n" +
+			"Content-Type: text/plain\r\n\r\nok"
+
+		conn.Write([]byte(response))
+		return
+	}
+
+	// =========================
+	// DELETE /delete?id=X
+	// =========================
+	if method == "DELETE" && strings.HasPrefix(path, "/delete") {
+
+		parts := strings.SplitN(path, "?", 2)
+
+		if len(parts) > 1 {
+			params, err := url.ParseQuery(parts[1])
+			if err != nil {
+				fmt.Println("URL parse error:", err)
+				return
+			}
+
+			id := params.Get("id")
+
+			_, err = db.Exec("DELETE FROM series WHERE id = ?", id)
+			if err != nil {
+				fmt.Println("Delete error:", err)
 				return
 			}
 		}
