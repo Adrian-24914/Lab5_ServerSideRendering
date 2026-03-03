@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"database/sql"
 	"fmt"
 	"io"
 	"net"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -29,6 +31,41 @@ func get(conn net.Conn, db *sql.DB) {
 	method := parts[0]
 	path := parts[1]
 
+	// =========================
+	// SERVIR ARCHIVOS ESTÁTICOS
+	// =========================
+	if method == "GET" && strings.HasPrefix(path, "/static/") {
+
+		filePath := "." + path
+
+		data, err := os.ReadFile(filePath)
+		if err != nil {
+			fmt.Println("Static file error:", err)
+			return
+		}
+
+		contentType := "text/plain"
+
+		if strings.HasSuffix(path, ".js") {
+			contentType = "application/javascript"
+		}
+
+		if strings.HasSuffix(path, ".css") {
+			contentType = "text/css"
+		}
+
+		response := "HTTP/1.1 200 OK\r\n" +
+			"Content-Type: " + contentType + "\r\n" +
+			fmt.Sprintf("Content-Length: %d\r\n\r\n", len(data))
+
+		conn.Write([]byte(response))
+		conn.Write(data)
+		return
+	}
+
+	// =========================
+	// LEER HEADERS
+	// =========================
 	contentLength := 0
 
 	for {
