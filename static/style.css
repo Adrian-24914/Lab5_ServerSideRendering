@@ -97,7 +97,7 @@ button:last-of-type:hover {
     background-color: #b91c1c;
 }
 
-/* Formulario */
+
 form {
     background-color: white;
     padding: 25px;
@@ -118,4 +118,44 @@ input {
 input:focus {
     outline: none;
     border-color: #2563eb;
+}
+
+.container {
+    max-width: 1000px;
+    margin: auto;
+}
+
+
+.duck {
+    width: 150px;
+    display: block;
+    margin-bottom: 20px;
+}
+
+
+@media (max-width: 768px) {
+
+    body {
+        padding: 20px;
+    }
+
+    table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    form {
+        width: 100%;
+    }
+
+    th, td {
+        padding: 8px;
+        font-size: 14px;
+    }
+
+    button {
+        padding: 4px 6px;
+        font-size: 12px;
+    }
 }
