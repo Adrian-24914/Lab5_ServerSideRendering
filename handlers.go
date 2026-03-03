@@ -54,6 +54,14 @@ func get(conn net.Conn, db *sql.DB) {
 			contentType = "text/css"
 		}
 
+		if strings.HasSuffix(path, ".png") {
+		contentType = "image/png"
+		}
+
+		if strings.HasSuffix(path, ".jpg") || strings.HasSuffix(path, ".jpeg") {
+		contentType = "image/jpeg"
+		}
+
 		response := "HTTP/1.1 200 OK\r\n" +
 			"Content-Type: " + contentType + "\r\n" +
 			fmt.Sprintf("Content-Length: %d\r\n\r\n", len(data))
@@ -172,6 +180,8 @@ func get(conn net.Conn, db *sql.DB) {
 		<body>
 
 		<h1>Add New Series</h1>
+
+		<img src="/static/Duck.png" width="150"><br><br>
 
 		<form method="POST" action="/create">
 
